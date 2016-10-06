@@ -66,7 +66,7 @@
 						### Why should I care?
 
 						* Build once, push to registry, then run with one command: <!-- .element: class="fragment" data-fragment-index="0" -->
-							```
+							```bash
 							docker run -p 8080:8080 computersciencehouse/conditional
 							```
 						* Eliminates needing to install dependencies/packages/etc. on the host <!-- .element: class="fragment" data-fragment-index="2" -->
@@ -89,7 +89,7 @@
 							* Supports Linux, Mac, and Windows
 						2. Open a terminal/command prompt
 						3. Run your first container:
-						```
+						```bash
 						docker run ubuntu /bin/echo 'Hello world'
 						```
 					</script>
@@ -99,7 +99,7 @@
 					<script type="text/template">
 						### So what just happened?
 
-						```
+						```bash
 						docker run ubuntu /bin/echo 'Hello world'
 						```
 
@@ -111,8 +111,6 @@
 				</section>
 
 			</section>
-
-			<section>
 
 			<section data-markdown>
 				<script type="text/template">
@@ -131,67 +129,292 @@
 				</script>
 			</section>
 
-			</section>
+            <section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Your First Container
+
+                        Start a new interactive (`-i`) CentOS 7 container with a TTY (`-t`):
+
+                        ```bash
+                        docker run -it centos:7 /bin/bash
+                        ```
+
+                        If you have the image locally, the container will start immediately. Otherwise, it will take a few minutes to download it from the Docker Hub.
+
+                        Once the container starts, you'll get a Bash prompt within the container:
+
+                        ```bash
+                        [root@8431f1550cc0 /]#
+                        ```
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Your First Containerized App
+
+                        Let's go ahead and install Flask for our example app:
+
+                        ```bash
+                        [root@8431f1550cc0 /]# yum install python-flask
+                        [root@8431f1550cc0 /]# yum clean all
+                        ```
+
+                        Note that we're deleting the yum cache - this will reduce the final image size.
+
+                        Next, let's make a quick Flask app:
+
+                        ```bash
+                        [root@8431f1550cc0 /]# vi hello.py
+                        ```
+
+                        ```python
+                        from flask import Flask
+                        app = Flask(__name__)
+
+                        @app.route('/')
+                        def hello_world():
+                            return 'Hello, World!'
+
+                        app.run(host="0.0.0.0", port=8080)
+                        ```
+
+                        Note that we're exposing the service to the world and running it on port 8080.  This will allow us to access the service from the host network.
+
+                        Finally, exit out of the container:
+
+                        ```bash
+                        [root@8431f1550cc0 /]# exit
+                        ```
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Your First Containerized App
+
+                        Now that our container is set up, we need to commit it to a new image:
+
+                        ```bash
+                        docker commit -m "Added example app" -a "Steven Mirabito" 8431f1550cc0 seminar/hello:latest
+                        ```
+
+                        * `docker commit` tells the Docker Engine we want to save our container to an image
+                        * `-m "Added example app"` is an optional commit message, much like in a VCS
+                        * `-a "Steven Mirabito"` is an optional commit author, much like in a VCS
+                        * `8431f1550cc0` is the container ID, which is the hostname as seen in the container's Bash prompt
+                        * `seminar/hello:latest` is the image name, which can be broken down into three parts:
+                          * `seminar` is the _namespace_, which is usually your Docker Hub username but can be anything locally
+                          * `hello` is the _image name_, which is usually your Docker Hub repository but can be anything locally
+                          * `latest` is the _image tag_, which is arbitrary but `latest` is usually used to denote the newest image
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Your First Containerized App
+
+                        Now we can run our app:
+
+                        ```
+                        docker run -p 8080:8080 seminar/hello:latest /usr/bin/python hello.py
+                        ```
+
+                        Note that we're using a new flag here: `-p 8080:8080` indicates that we want to forward port 8080 from the container to the host network
+
+                        If all went well, you should see:
+
+                        ```
+                         * Running on http://0.0.0.0:8080/
+                        ```
+
+                        And if you go to `http://localhost:8080` in your browser...
+
+                        ![](img/first-app.png)  <!-- .element: class="plain" -->
+                    </script>
+                </section>
+
+            </section>
+
+            <section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Writing a Dockerfile
+
+                        Now that we know how to manually containerize an app, let's take a look at how we can automate that process and version control the instructions.
+
+                        The way we do that with Docker is with a _Dockerfile_.
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Writing a Dockerfile
+
+                        Some Dockerfile instructions:
+
+                        * `FROM` - The base image to build on top of
+                        * `MAINTAINER` - The maintainer of the image
+                        * `RUN` - Run a command in the container
+                        * `EXPOSE` - Expose a port to the host network
+                        * `ENV` - Set an environment variable in the container
+                        * `COPY` - Copy files into the container
+                        * `ENTRYPOINT` or `CMD` - Default executable for the image
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Writing a Dockerfile
+
+                        Example Dockerfile to build the `seminar/hello` image:
+
+                        ```dockerfile
+                        FROM centos:7
+                        MAINTAINER Steven Mirabito (smirabito@csh.rit.edu)
+
+                        # Install Flask
+                        RUN yum -y install python-flask && yum -y clean all
+
+                        # Create app user and directory
+                        RUN useradd -r -d /opt/hello -s /sbin/nologin hello && \
+                        mkdir -p /opt/hello && \
+                        chown -R hello:hello /opt/hello && \
+                        chmod -R og+rwx /opt/hello
+
+                        # Copy the application into the container
+                        COPY hello.py /opt/hello/
+
+                        # Drop privileges
+                        USER hello
+
+                        # Set the working directory to the app root
+                        WORKDIR /opt/hello
+
+                        # Expose the app port
+                        EXPOSE 8080
+
+                        # Set the entrypoint for the application
+                        CMD /usr/bin/python hello.py
+                        ```
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Writing a Dockerfile
+
+                        Now, build the image:
+
+                        ```bash
+                        docker build -t seminar/hello:latest .
+                        ```
+
+                        * `docker build` tells the Docker Engine that we want to build an image
+                        * `-t seminar/hello:latest` says we want to name and tag the image
+                        * `.` says we want to set the build context to the current directory
+
+                        And run it again (note that we no longer have to specify the command):
+
+                        ```bash
+                        docker run -p 8080:8080 seminar/hello:latest
+                        ```
+
+                        The Dockerfile can be kept in a VCS repository and versioned along with your code. It can also be used to run automated builds on the Docker Hub.
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Writing a Dockerfile
+
+                        Best Practices
+
+                        * **Containers should be ephemeral** - Your container should be able to be stopped, destroyed, and rebuilt with little to no configuration required. This allows for seamless application updates. Most applications achieve this by using environment variable-driven configuration.
+                        * **Use a small base image** - Investigate smaller base images such as Alpine Linux instead of using a CentOS or Ubuntu base. This one step can reduce the size of your image by hundreds of megabytes.
+                        * **Only install what you need** - Images can quickly balloon to a massive size. Only install the packages and dependencies you need to run your application.
+                        * **Use a .dockerignore** - Similar to a `.gitignore`, this file tells the Docker Engine about files it can safely exclude from the build context to reduce the size of the image.
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Writing a Dockerfile
+
+                        Best Practices
+
+                        * **Use the cache** - The Docker Engine will automatically cache each step of your build as "layers" that sit on top of one another, so put build steps that take a while (installing packages, etc.) near the top of your Dockerfile. Subsequent builds as you tweak your Dockerfile will take much less time.
+                        * **Minimize the number of layers** - Find a balance between Dockerfile readability and the number of layers you create (e.g. combine `RUN` commands wherever possible).
+                        * **Run only one process per container** - Decoupling applications into multiple containers makes it easy to scale your application overall and makes updates easier. Containers can be linked and use internal networking to talk to each other.
+                        * **Sort multi-line arguments** - If you're installing a list of packages, sort them alphabetically.
+                    </script>
+                </section>
+
+            </section>
 
 		</div>
+    </div>
 
-		<script src="lib/js/head.min.js"></script>
-		<script src="js/reveal.js"></script>
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
 
-		<script>
-			Reveal.initialize({
+    <script>
+        Reveal.initialize({
 
-				width: 1366,
-				height: 768,
-				margin: 0.1,
-				minScale: 0.2,
-				maxScale: 1.2,
+            width: 1366,
+            height: 768,
+            margin: 0.1,
+            minScale: 0.2,
+            maxScale: 1.2,
 
-				controls: true,
-				progress: true,
-				history: true,
-				center: true,
+            controls: true,
+            progress: true,
+            history: true,
+            center: true,
 
-				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
-				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+            theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+            transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
 
-				// Optional libraries used to extend on reveal.js
-				dependencies: [{
-					src: 'lib/js/classList.js',
-					condition: function() {
-						return !document.body.classList;
-					}
-				}, {
-					src: 'plugin/highlight/highlight.js',
-					async: true,
-					callback: function() {
-						hljs.initHighlightingOnLoad();
-					}
-				}, {
-					src: 'plugin/zoom-js/zoom.js',
-					async: true,
-					condition: function() {
-						return !!document.body.classList;
-					}
-				}, {
-					src: 'plugin/notes/notes.js',
-					async: true,
-					condition: function() {
-						return !!document.body.classList;
-					}
-				}, {
-					src: 'plugin/markdown/marked.js',
-					condition: function() {
-						return !!document.querySelector('[data-markdown]');
-					}
-				}, {
-					src: 'plugin/markdown/markdown.js',
-					condition: function() {
-						return !!document.querySelector('[data-markdown]');
-					}
-				}]
-			});
-		</script>
+            // Optional libraries used to extend on reveal.js
+            dependencies: [{
+                src: 'lib/js/classList.js',
+                condition: function() {
+                    return !document.body.classList;
+                }
+            }, {
+                src: 'plugin/highlight/highlight.js',
+                async: true,
+                callback: function() {
+                    hljs.initHighlightingOnLoad();
+                }
+            }, {
+                src: 'plugin/zoom-js/zoom.js',
+                async: true,
+                condition: function() {
+                    return !!document.body.classList;
+                }
+            }, {
+                src: 'plugin/notes/notes.js',
+                async: true,
+                condition: function() {
+                    return !!document.body.classList;
+                }
+            }, {
+                src: 'plugin/markdown/marked.js',
+                condition: function() {
+                    return !!document.querySelector('[data-markdown]');
+                }
+            }, {
+                src: 'plugin/markdown/markdown.js',
+                condition: function() {
+                    return !!document.querySelector('[data-markdown]');
+                }
+            }]
+        });
+    </script>
 
 </body>
 </html>
