@@ -133,7 +133,7 @@
 
                 <section data-markdown>
                     <script type="text/template">
-                        ### Your First Container
+                        ### Your First Containerized App
 
                         Start a new interactive (`-i`) CentOS 7 container with a TTY (`-t`):
 
@@ -167,18 +167,7 @@
                         Next, let's make a quick Flask app:
 
                         ```bash
-                        [root@8431f1550cc0 /]# vi hello.py
-                        ```
-
-                        ```python
-                        from flask import Flask
-                        app = Flask(__name__)
-
-                        @app.route('/')
-                        def hello_world():
-                            return 'Hello, World!'
-
-                        app.run(host="0.0.0.0", port=8080)
+                        [root@8431f1550cc0 /]# curl -fsSL https://goo.gl/K8b4y9 > hello.py
                         ```
 
                         Note that we're exposing the service to the world and running it on port 8080.  This will allow us to access the service from the host network.
@@ -198,16 +187,14 @@
                         Now that our container is set up, we need to commit it to a new image:
 
                         ```bash
-                        docker commit -m "Added example app" -a "Steven Mirabito" 8431f1550cc0 seminar/hello:latest
+                        docker commit 8431f1550cc0 seminar/hello:latest
                         ```
 
-                        * `docker commit` tells the Docker Engine we want to save our container to an image
-                        * `-m "Added example app"` is an optional commit message, much like in a VCS
-                        * `-a "Steven Mirabito"` is an optional commit author, much like in a VCS
+                        * `docker commit` tells the Docker Engine we want to save our container
                         * `8431f1550cc0` is the container ID, which is the hostname as seen in the container's Bash prompt
-                        * `seminar/hello:latest` is the image name, which can be broken down into three parts:
-                          * `seminar` is the _namespace_, which is usually your Docker Hub username but can be anything locally
-                          * `hello` is the _image name_, which is usually your Docker Hub repository but can be anything locally
+                        * `seminar/hello:latest` is the image name, in three parts:
+                          * `seminar` is the _namespace_, which is usually your Docker Hub username
+                          * `hello` is the _image name_, which is usually your Docker Hub repository
                           * `latest` is the _image tag_, which is arbitrary but `latest` is usually used to denote the newest image
                     </script>
                 </section>
@@ -247,6 +234,8 @@
                         Now that we know how to manually containerize an app, let's take a look at how we can automate that process and version control the instructions.
 
                         The way we do that with Docker is with a _Dockerfile_.
+
+                        ![](img/dockerfile.png) <!-- .element: class="plain" height="300px" -->
                     </script>
                 </section>
 
@@ -300,6 +289,8 @@
                         # Set the entrypoint for the application
                         CMD /usr/bin/python hello.py
                         ```
+
+                        `curl -fsSL https://goo.gl/xfZFzn > Dockerfile`
                     </script>
                 </section>
 
@@ -334,9 +325,7 @@
                         Best Practices
 
                         * **Containers should be ephemeral** - Your container should be able to be stopped, destroyed, and rebuilt with little to no configuration required. This allows for seamless application updates. Most applications achieve this by using environment variable-driven configuration.
-                        * **Use a small base image** - Investigate smaller base images such as Alpine Linux instead of using a CentOS or Ubuntu base. This one step can reduce the size of your image by hundreds of megabytes.
-                        * **Only install what you need** - Images can quickly balloon to a massive size. Only install the packages and dependencies you need to run your application.
-                        * **Use a .dockerignore** - Similar to a `.gitignore`, this file tells the Docker Engine about files it can safely exclude from the build context to reduce the size of the image.
+                        * **Use the cache** - The Docker Engine will automatically cache each step of your build as "layers" that sit on top of one another, so put build steps that take a while (installing packages, etc.) near the top of your Dockerfile. Subsequent builds as you tweak your Dockerfile will take much less time.
                     </script>
                 </section>
 
@@ -346,10 +335,66 @@
 
                         Best Practices
 
-                        * **Use the cache** - The Docker Engine will automatically cache each step of your build as "layers" that sit on top of one another, so put build steps that take a while (installing packages, etc.) near the top of your Dockerfile. Subsequent builds as you tweak your Dockerfile will take much less time.
+                        * **Use a small base image** - Investigate smaller base images such as Alpine Linux instead of using a CentOS or Ubuntu base. This one step can reduce the size of your image by hundreds of megabytes.
+                        * **Only install what you need** - Images can quickly balloon to a massive size. Only install the packages and dependencies you need to run your application.
                         * **Minimize the number of layers** - Find a balance between Dockerfile readability and the number of layers you create (e.g. combine `RUN` commands wherever possible).
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Writing a Dockerfile
+
+                        Best Practices
+
                         * **Run only one process per container** - Decoupling applications into multiple containers makes it easy to scale your application overall and makes updates easier. Containers can be linked and use internal networking to talk to each other.
+                        * **Use a .dockerignore** - Similar to a `.gitignore`, this file tells the Docker Engine about files it can safely exclude from the build context to reduce the size of the image.
                         * **Sort multi-line arguments** - If you're installing a list of packages, sort them alphabetically.
+                    </script>
+                </section>
+
+            </section>
+
+            <section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Registries
+
+                        Docker images can be pulled from and pushed to a Docker _registry_, which makes it easy to deploy your images. You can host your own registry, or use one of a number of public registries such as:
+
+                        * Docker Hub - https://hub.docker.com
+                        * CoreOS Quay - https://quay.io
+
+                        These cloud registries also allow you to do automated builds with GitHub and generic webhooks, allowing you to further automate your container builds.
+
+                        ![](img/registry.png) <!-- .element: class="plain" height="200px" -->
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Registries
+
+                        To log into the Docker Hub, run:
+
+                        ```bash
+                        docker login
+                        ```
+
+                        To push an image from your local machine up to the Docker Hub, run:
+
+                        ```bash
+                        docker push computersciencehouse/seminar-hello:latest
+                        ```
+
+                        To pull an image (without running it), run:
+
+                        ```bash
+                        docker pull computersciencehouse/seminar-hello:latest
+                        ```
+
+                        As mentioned before, images that aren't present locally will be automatically pulled when run.
                     </script>
                 </section>
 
