@@ -398,6 +398,64 @@
                     </script>
                 </section>
 
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Automated Builds
+
+                        Automated builds allow you to automatically rebuild your Docker images in the cloud whenever you push new code to your repository.
+
+                        ![](img/automatedbuild.png)
+                    </script>
+                </section>
+
+            </section>
+
+            <section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Deploying to OpenShift
+
+                        Docker Images can be deployed directly to OpenShift.
+
+                        ![](img/openshift-deploy.png)
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Deploying to OpenShift
+
+                        OpenShift creates an _image stream_, which watches the Docker Hub repository for changes and will automatically redeploy when a new image is pushed.
+
+                        ![](img/openshift-imagestreams.png)
+
+                        Images can also be (re)imported with the command line client:
+
+                        ```
+                        oc import-image computersciencehouse/seminar-hello
+                        ```
+                    </script>
+                </section>
+
+                <section data-markdown>
+                    <script type="text/template">
+                        ### Deploying to OpenShift
+
+                        Environment variables can be added to your app's _deployment config_, which will be made available to the deployed _pod_.
+
+                        ![](img/openshift-env.png)
+                    </script>
+                </section>
+
+            </section>
+
+            <section data-markdown>
+                <script type="text/template">
+                    ### Questions?
+
+                    ![](img/questions.png) <!-- .element: class="plain" height="400px" -->
+                </script>
             </section>
 
 		</div>
